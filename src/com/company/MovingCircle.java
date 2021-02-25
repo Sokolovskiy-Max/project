@@ -13,50 +13,55 @@ import java.awt.geom.Ellipse2D;
 import javax.swing.*;
 
 public class MovingCircle extends JComponent implements ActionListener {
-    private double f =0;
+    int kol = 4;
+    int k = 0;
+    int del[] = new int[kol];
+    private double f = 0;
     private double scale;
     private Color color;
     private Timer timer;
-    public double x1 =100;
-    public double y1 =100;
-    public double a1 =100;
-    public double e1 =0.70;
-
-    double m1=11*Math.pow(10,29);
-    double m2=11*Math.pow(10,29);
-    double m3=11*Math.pow(10,29);
-
-    Vect v1 ,v2,v3,r1,r2,r3,Vcm,rcm;
+    double m[] = new double[]{11 * Math.pow(10, 29), 11 * Math.pow(10, 29), 11 * Math.pow(10, 29), 11 * Math.pow(10, 29)};
+    double vx[] = new double[]{9700, 10000, -10000, -10000};
+    double vy[] = new double[]{-10000, 10000, 10000, -10000};
+    double rx[] = new double[]{-1.5 * 1.5 * Math.pow(10, 11), 1.5 * 1.5 * Math.pow(10, 11), 1.5 * 1.5 * Math.pow(10, 11), -1.5 * 1.5 * Math.pow(10, 11)};
+    double ry[] = new double[]{-1.5 * 1.5 * Math.pow(10, 11), -1.5 * 1.5 * Math.pow(10, 11), 1.5 * 1.5 * Math.pow(10, 11), 1.5 * 1.5 * Math.pow(10, 11)};
+    Vect v[];
+    Vect r[];
+    Vect a[];
+    Vect Vcm, rcm;
 
     public MovingCircle(Color color, int delay) {
+        a = new Vect[kol];
+        v = new Vect[kol];
+        r = new Vect[kol];
+        for (int i = 0; i < kol; i++) {
+            v[i] = new Vect();
+            a[i] = new Vect();
+            v[i].x = vx[i];
+            v[i].y = vy[i];
+            a[i].x = 0;
+            a[i].y = 0;
+            del[i] = -1;
+        }
+        for (int i = 0; i < kol; i++) {
+            r[i] = new Vect();
+            r[i].x = rx[i];
+            r[i].y = ry[i];
+        }
+        Vcm = new Vect();
+        double M = 0;
+        for (int i = 0; i < kol; i++) {
+            Vcm = Vcm.VSum(v[i].VSp(m[i]));
+            M = M + m[i];
+        }
+        Vcm = Vcm.VSp(1 / M);
         scale = 1.0;
         timer = new Timer(delay, this);
         this.color = color;
         setPreferredSize(new Dimension(1000, 1000));
-        v1=new Vect();
-        v1.x=-16000;
-        v1.y=1000;
-        r1=new Vect();
-        r1.x=4*1.5*Math.pow(10,11);
-        r1.y=6*1.5*Math.pow(10,11);;
-        v2=new Vect();
-        v2.x=0;
-        v2.y=5000;
-        r2=new Vect();
-        r2.x=2.5*1.5*Math.pow(10,11);;
-        r2.y=2*1.5*Math.pow(10,11);;
-        v3=new Vect();
-        v3.x=0;
-        v3.y=-10000;
-        r3=new Vect();
-        r3.x=4.5*1.5*Math.pow(10,11);;
-        r3.y=2*1.5*Math.pow(10,11);;
-        Vcm=new Vect();
-        Vcm=(v1.VSp(m1)).VSum((v2.VSp(m2)).VSum(v3.VSp(m3))).VSp(-1/(m1+m2+m3)); //скорость центра масс
-
-        rcm=new Vect();
-        rcm.x=0;
-        rcm.y=0;
+        rcm = new Vect();
+        rcm.x = 500 * (1.5 * Math.pow(10, 9));
+        rcm.y = 500 * (1.5 * Math.pow(10, 9));
     }
 
     public void start() {
@@ -68,26 +73,38 @@ public class MovingCircle extends JComponent implements ActionListener {
     }
 
 
-    public static Vect a(Vect r1,Vect r2,Vect r3,double m1, double m2, double m3 ) {
-        Vect r21 = r1.VMi(r2);
-        Vect r31 = r1.VMi(r3);
-        Vect f2=r21.VSp(6.67*Math.pow(10,-11)*m1*m2/Math.pow(r21.Le(),2)/r21.Le());
-        Vect f3=r31.VSp(6.67*Math.pow(10,-11)*m1*m3/Math.pow(r31. Le(),2)/r31.Le());
-        Vect f=f2.VSum(f3);
-        Vect a=f.VSp(1/m1);
-        return(a);
+    public static Vect a(Vect[] r, Vect[] v, double[] m, int kol, int n) {
+        Vect a[] = new Vect[kol];
+        Vect ao = new Vect();
+        ao.x = 0;
+        ao.y = 0;
+        for (int i = 0; i < kol; i++) {
+            a[i] = new Vect();
+            if (i != n) {
+                a[i] = (r[n].VMi(r[i])).VSp((m[i] * (-6.67 * Math.pow(10, -11)) / Math.pow((r[n].VMi(r[i])).Le(), 3)));
+            } else {
+                a[i].x = 0;
+                a[i].y = 0;
+            }
+            ao = ao.VSum(a[i]);
+        }
+        return (ao);
     }
-    public static Vect v(Vect v,Vect a,double ti) {
+
+
+    public static Vect v(Vect v, Vect a, double ti) {
         Vect dv = a.VSp(ti);
         Vect v1 = v.VSum(dv);
         return v1;
     }
-    public static Vect r( Vect r,Vect v,double ti,Vect Vcm) {
-        Vect dr = (v.VSum(Vcm)).VSp(ti);
+
+    public static Vect r(Vect r, Vect v, double ti, Vect Vcm) {
+        Vect dr = (v).VSp(ti);
         Vect r1 = r.VSum(dr);
         return r1;
     }
-    public static Vect rcm( Vect rcm,Vect Vcm,double ti) {
+
+    public static Vect rcm(Vect rcm, Vect Vcm, double ti) {
         Vect drcm = Vcm.VSp(ti);
         Vect r = rcm.VSum(drcm);
         return r;
@@ -97,108 +114,113 @@ public class MovingCircle extends JComponent implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent arg0) {
         repaint();
-
     }
-    static boolean init = true;
 
+    @Override
 
     protected void paintComponent(Graphics g) {
         Graphics2D g2d = (Graphics2D) g;
-
+        g2d.setColor(Color.white);
         int width = 1000;
         int height = 1000;
-       // if(init) {
-            g2d.setColor(Color.white);
-           // g.fillRect(0, 0, width, height);
-            init=false;
-      //  }
+        g.fillRect(0, 0, width, height);
         g2d.setColor(Color.black);
-        //g2d.drawRect(0, 0, width - 1, height - 1);
+        g2d.drawRect(0, 0, width - 1, height - 1);
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setColor(color);
         g2d.scale(scale, scale);
 
+        for (int i = 0; i < kol; i++)
+            a[i] = a(r, v, m, kol, i);
+        for (int i = 0; i < kol; i++)
+            v[i] = v(v[i], a[i], 200000);
+        for (int i = 0; i < kol; i++)
+            r[i] = r(r[i], v[i], 200000, Vcm);
+
+        rcm = rcm(rcm, Vcm, 200000);
+        for (int i = 0; i < kol; i++) {
+
+            for (int j = i + 1; j < kol; j++) {
+                if ((i != del[0]) && (i != del[1]) && (i != del[2]) && (i != del[3]) && (j != del[0]) && (j != del[1]) && (j != del[2]) && (j != del[3])) {
+                    if (Math.abs((r[i].VMi(r[j])).Le()) < 2 * Math.pow(10, 10)) {
+                        v[i] = ((v[i].VSp(m[i])).VSum(v[j].VSp(m[j]))).VSp(1 / (m[i] + m[j]));
+                        m[i] = m[j] + m[i];
+                        m[j] = 0;
+                        r[j].y = 0;
+                        r[j].x = 5000;
+                        v[j].y = 0;
+                        v[j].x = 0;
+                        del[k] = j;
+                        k++;
+                    }
+                }
+            }
+        }
 
 
-        Vect u1=a(r1,r2,r3,m1,m2,m3);
-        Vect u2=a(r2,r1,r3,m2,m1,m3);
-        Vect u3=a(r3,r1,r2,m3,m1,m2);
-        rcm=rcm(rcm,Vcm,200000);
-        v1=v(v1,u1,200000);
-        v2=v(v2,u2,200000);
-        v3=v(v3,u3,200000);
-
-        r1=r( r1,v1, 200000,Vcm);
-        r2=r(r2,v2,200000,Vcm);
-        r3=r(r3,v3,200000,Vcm);
+        for (int i = 0; i < kol; i++) {
+            if ((i != del[0]) && (i != del[1]) && (i != del[2]) && (i != del[3])) {
+                g2d.setColor(new Color(100 + i * 35, 100 - i * 20, 100 + i * 30));
+                Ellipse2D el = new Ellipse2D.Double((r[i].x - rcm.x) / (1.5 * Math.pow(10, 9)) + 1000, (r[i].y - rcm.y) / (1.5 * Math.pow(10, 9)) + 1000, 20, 20);
+                g2d.fill(el);
 
 
+            }
+        }
 
-        g2d.setColor(Color.BLUE);
-        Ellipse2D el1 = new Ellipse2D.Double(r1.x/(1.5*Math.pow(10,9))+200,r1.y/(1.5*Math.pow(10,9))+200,20, 20);
-        g2d.fill(el1);
-        g2d.setColor(Color.GREEN);
-        Ellipse2D el2 = new Ellipse2D.Double(r2.x/(1.5*Math.pow(10, 9))+200,r2.y/(1.5*Math.pow(10,9))+200, 20, 20);
-        g2d.fill(el2);
-        g2d.setColor(Color.ORANGE);
-        Ellipse2D el3 = new Ellipse2D.Double(r3.x/(1.5*Math.pow(10,9))+200,r3.y/(1.5*Math.pow(10,9))+200, 20, 20);
-        g2d.fill(el3);
 
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
+    public static void showMovingCircle(double[] mz,double[] vxz,double []vyz[]) {
 
-                JFrame frame = new JFrame("Moving Circle");
-                JPanel panel = new JPanel();
-                final MovingCircle MovingCircleB = new MovingCircle(Color.BLUE, 2);
-                panel.add(MovingCircleB);
-                frame.getContentPane().add(panel);
-                final JButton bst = new JButton("Start");
+        JFrame frame = new JFrame("Moving Circle");
+        JPanel panel = new JPanel();
+        final MovingCircle MovingCircleB = new MovingCircle(Color.BLUE, 2);
+        panel.add(MovingCircleB);
+        frame.getContentPane().add(panel);
+        final JButton bst = new JButton("Start");
 
-                final JTextField tfm1 = new JTextField(10);
-                final JTextField tfm2 = new JTextField (10);
-                final JTextField tfm3 = new JTextField (10);
-                final JTextField tfa1 = new JTextField (10);
-                final JTextField tfa2 = new JTextField (10);
-                final JTextField tfa3 = new JTextField (10);
-                final JTextField tfe1 = new JTextField (10);;
-                final JTextField tfe2 = new JTextField (10);
-                final JTextField tfe3 = new JTextField (10 );
+        final JTextField tfm1 = new JTextField(10);
+        final JTextField tfm2 = new JTextField(10);
+        final JTextField tfm3 = new JTextField(10);
+        final JTextField tfa1 = new JTextField(10);
+        final JTextField tfa2 = new JTextField(10);
+        final JTextField tfa3 = new JTextField(10);
+        final JTextField tfe1 = new JTextField(10);
+        ;
+        final JTextField tfe2 = new JTextField(10);
+        final JTextField tfe3 = new JTextField(10);
 
-                bst.addActionListener(new ActionListener() {
-                    private boolean pulsing = false;
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        if (pulsing) {
-                            pulsing = false;
-                            MovingCircleB.stop();
-                            bst.setText("Start");
+        bst.addActionListener(new ActionListener() {
+            private boolean pulsing = false;
 
-                        } else {
-                            pulsing = true;
-                            MovingCircleB.start();
-                            bst.setText("Stop");
-                        }
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (pulsing) {
+                    pulsing = false;
+                    MovingCircleB.stop();
+                    bst.setText("Start");
 
-                    }
-                });
-                panel.add(bst);
-                panel.add(tfm1);
-                panel.add(tfm2);
-                panel.add(tfm3);
-                panel.add(tfa1);
-                panel.add(tfa2);
-                panel.add(tfa3);
-                panel.add(tfe1);
-                panel.add(tfe2);
-                panel.add(tfe3);
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                frame.setSize(1100, 1100);
-                frame.setVisible(true);
+                } else {
+                    pulsing = true;
+                    MovingCircleB.start();
+                    bst.setText("Stop");
+                }
+
             }
         });
+        panel.add(bst);
+        panel.add(tfm1);
+        panel.add(tfm2);
+        panel.add(tfm3);
+        panel.add(tfa1);
+        panel.add(tfa2);
+        panel.add(tfa3);
+        panel.add(tfe1);
+        panel.add(tfe2);
+        panel.add(tfe3);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(1100, 1100);
+        frame.setVisible(true);
     }
-
 }

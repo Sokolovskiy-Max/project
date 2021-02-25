@@ -15,8 +15,8 @@ public class Vect {
     }
     public Vect VMi(Vect a) {
         Vect b=new Vect() ;
-        b.x=a.x-this.x;
-        b.y=a.y-this.y;
+        b.x=-a.x+this.x;
+        b.y=-a.y+this.y;
         return b;
     }
     public Vect VSp(double b) {
